@@ -46,6 +46,7 @@ impl From<&[u8]> for PageId {
     }
 }
 
+#[derive(Debug)]
 pub struct DiskManager {
     // ヒープファイルのファイルディスクリプタ
     heap_file: File,
@@ -110,5 +111,36 @@ impl DiskManager {
     pub fn sync(&mut self) -> io::Result<()> {
         self.heap_file.flush()?;
         self.heap_file.sync_all()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test() {
+        let (data_file, data_file_path) = NamedTempFile::new().unwrap().into_parts();
+        let mut disk = DiskManager::new(data_file).unwrap();
+        let mut hello = Vec::with_capacity(PAGE_SIZE);
+        hello.extend_from_slice(b"hello");
+        hello.resize(PAGE_SIZE, 0);
+        let hello_page_id = disk.allocate_page();
+        disk.write_page_data(hello_page_id, &hello).unwrap();
+        println!("{:?}", disk);
+        let mut world = Vec::with_capacity(PAGE_SIZE);
+        world.extend_from_slice(b"world");
+        world.resize(PAGE_SIZE, 0);
+        let world_page_id = disk.allocate_page();
+        disk.write_page_data(world_page_id, &world).unwrap();
+        drop(disk);
+        let mut disk2 = DiskManager::open(&data_file_path).unwrap();
+        let mut buf = vec![0; PAGE_SIZE];
+
+        disk2.read_page_data(hello_page_id, &mut buf).unwrap();
+        assert_eq!(hello, buf);
+        disk2.read_page_data(world_page_id, &mut buf).unwrap();
+        assert_eq!(world, buf);
     }
 }
