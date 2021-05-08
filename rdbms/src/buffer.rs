@@ -135,7 +135,7 @@ impl BufferPoolManager {
     }
 
     // ページの貸出
-    fn fetch_page(&mut self, page_id: PageId) -> Result<Rc<Buffer>, Error> {
+    pub fn fetch_page(&mut self, page_id: PageId) -> Result<Rc<Buffer>, Error> {
         // ページがバッファプールにある場合
         if let Some(&buffer_id) = self.page_table.get(&page_id) {
             let frame = &mut self.pool[buffer_id];
